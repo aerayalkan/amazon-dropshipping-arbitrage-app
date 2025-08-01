@@ -1,0 +1,39 @@
+{
+  "name": "amazon-dropshipping-platform",
+  "version": "1.0.0",
+  "description": "Profesyonel Amazon dropshipping yönetim platformu",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:ai\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run start:dev",
+    "dev:ai": "cd ai-service && python -m uvicorn main:app --reload --port 8001",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "test": "npm run test:frontend && npm run test:backend",
+    "test:frontend": "cd frontend && npm run test",
+    "test:backend": "cd backend && npm run test",
+    "setup": "npm run setup:frontend && npm run setup:backend && npm run setup:ai",
+    "setup:frontend": "cd frontend && npm install",
+    "setup:backend": "cd backend && npm install",
+    "setup:ai": "cd ai-service && pip install -r requirements.txt"
+  },
+  "keywords": [
+    "amazon",
+    "dropshipping",
+    "e-commerce",
+    "automation",
+    "repricing",
+    "ai"
+  ],
+  "author": "Amazon Dropshipping Platform",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}
