@@ -16,7 +16,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { RepricingModule } from './modules/repricing/repricing.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
-import { AiModule } from './modules/ai/ai.module';
+import { AIModule } from './modules/ai/ai.module';
 import { AmazonApiModule } from './modules/amazon-api/amazon-api.module';
 import { NotificationModule } from './modules/notification/notification.module';
 
@@ -49,7 +49,7 @@ import { NotificationModule } from './modules/notification/notification.module';
     PricingModule,
     RepricingModule,
     DashboardModule,
-    AiModule,
+    AIModule,
     AmazonApiModule,
     NotificationModule,
   ],
