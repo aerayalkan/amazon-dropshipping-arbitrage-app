@@ -15,9 +15,9 @@ import { InventoryItem } from './inventory-item.entity';
 
 @Entity('suppliers')
 @Index(['userId', 'name'])
+@Index(['userId', 'isActive'])
 @Index(['country'])
 @Index(['rating'])
-@Index(['isActive'])
 export class Supplier {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -31,17 +31,9 @@ export class Supplier {
   @Column({ nullable: true })
   companyName?: string;
 
-  @Column('text', { nullable: true })
-  description?: string;
+  @Column({ nullable: true })
+  contactPerson?: string;
 
-  @Column({
-    type: 'enum',
-    enum: ['aliexpress', 'alibaba', 'amazon', 'local', 'wholesale', 'manufacturer', 'other'],
-    default: 'other',
-  })
-  platform: 'aliexpress' | 'alibaba' | 'amazon' | 'local' | 'wholesale' | 'manufacturer' | 'other';
-
-  // İletişim Bilgileri
   @Column({ nullable: true })
   email?: string;
 
@@ -51,33 +43,48 @@ export class Supplier {
   @Column({ nullable: true })
   website?: string;
 
-  @Column({ nullable: true })
-  profileUrl?: string;
-
-  // Adres Bilgileri
-  @Column({ nullable: true })
-  address?: string;
-
-  @Column({ nullable: true })
-  city?: string;
+  @Column({
+    type: 'enum',
+    enum: ['aliexpress', 'alibaba', 'dhgate', 'made-in-china', 'global-sources', 'other'],
+    default: 'other',
+  })
+  platform: 'aliexpress' | 'alibaba' | 'dhgate' | 'made-in-china' | 'global-sources' | 'other';
 
   @Column({ nullable: true })
-  state?: string;
+  platformUrl?: string;
+
+  @Column({ nullable: true })
+  platformStoreId?: string;
 
   @Column({ nullable: true })
   country?: string;
 
   @Column({ nullable: true })
-  postalCode?: string;
+  region?: string;
 
-  // İş Bilgileri
+  @Column({ nullable: true })
+  city?: string;
+
+  @Column('text', { nullable: true })
+  address?: string;
+
+  @Column({ length: 3, default: 'USD' })
+  currency: string;
+
+  @Column({
+    type: 'enum',
+    enum: ['verified', 'gold', 'silver', 'standard', 'unverified'],
+    default: 'standard',
+  })
+  verificationLevel: 'verified' | 'gold' | 'silver' | 'standard' | 'unverified';
+
   @Column('decimal', { precision: 3, scale: 2, default: 0 })
   rating: number;
 
   @Column('int', { default: 0 })
   totalOrders: number;
 
-  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  @Column('decimal', { precision: 12, scale: 2, default: 0 })
   totalOrderValue: number;
 
   @Column('int', { default: 0 })
@@ -89,84 +96,87 @@ export class Supplier {
   @Column('decimal', { precision: 5, scale: 2, default: 0 })
   qualityScore: number;
 
-  @Column('int', { default: 0 })
-  shippingTimeMin: number;
-
-  @Column('int', { default: 0 })
-  shippingTimeMax: number;
-
-  @Column('text', { array: true, default: [] })
-  shippingMethods: string[];
-
-  @Column('jsonb', { nullable: true })
-  shippingCosts?: {
-    [method: string]: {
-      baseCost: number;
-      perKgCost: number;
-      freeShippingThreshold?: number;
-    };
-  };
-
-  // Ödeme Şartları
-  @Column('text', { array: true, default: [] })
-  paymentMethods: string[];
-
-  @Column('int', { default: 30 })
-  paymentTermsDays: number;
+  @Column('decimal', { precision: 5, scale: 2, default: 0 })
+  communicationScore: number;
 
   @Column('decimal', { precision: 5, scale: 2, default: 0 })
-  discountRate: number;
+  shippingScore: number;
+
+  @Column('jsonb', { nullable: true })
+  paymentMethods?: string[];
+
+  @Column('jsonb', { nullable: true })
+  shippingMethods?: Array<{
+    method: string;
+    cost: number;
+    deliveryTime: string;
+    trackingAvailable: boolean;
+  }>;
+
+  @Column('jsonb', { nullable: true })
+  certificates?: Array<{
+    name: string;
+    issuedBy: string;
+    validUntil?: string;
+    verified: boolean;
+  }>;
+
+  @Column('int', { default: 1 })
+  minimumOrderQuantity: number;
 
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   minimumOrderValue?: number;
 
-  // Vergi ve Uyumluluk
-  @Column({ nullable: true })
-  taxId?: string;
+  @Column('int', { default: 30 })
+  leadTimeDays: number;
+
+  @Column('int', { default: 7 })
+  sampleTime: number;
+
+  @Column('decimal', { precision: 5, scale: 2, default: 0 })
+  sampleCost: number;
+
+  @Column({ default: false })
+  freeShippingAvailable: boolean;
+
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  freeShippingThreshold: number;
+
+  @Column({ default: false })
+  customizationAvailable: boolean;
+
+  @Column({ default: false })
+  dropshippingSupported: boolean;
+
+  @Column({ default: false })
+  bulkDiscountAvailable: boolean;
+
+  @Column('jsonb', { nullable: true })
+  bulkDiscountTiers?: Array<{
+    minQuantity: number;
+    discountPercent: number;
+  }>;
 
   @Column('text', { array: true, default: [] })
-  certifications: string[];
-
-  @Column({ default: false })
-  isVerified: boolean;
-
-  @Column({ default: false })
-  hasContract: boolean;
-
-  @Column('text', { nullable: true })
-  contractDetails?: string;
-
-  // API/Entegrasyon
-  @Column('jsonb', { nullable: true })
-  apiCredentials?: {
-    apiKey?: string;
-    accessToken?: string;
-    shopId?: string;
-    supplierId?: string;
-    lastApiCall?: string;
-  };
-
-  @Column({ default: false })
-  hasApiIntegration: boolean;
-
-  @Column('int', { default: 60 })
-  syncIntervalMinutes: number;
-
-  // Durum ve Notlar
-  @Column({ default: true })
-  isActive: boolean;
-
-  @Column({ default: false })
-  isPreferred: boolean;
+  tags: string[];
 
   @Column('text', { nullable: true })
   notes?: string;
 
-  @Column('jsonb', { nullable: true })
-  tags?: string[];
+  @Column({ default: true })
+  isActive: boolean;
+
+  @Column({ default: false })
+  isFavorite: boolean;
+
+  @Column({ default: false })
+  isBlacklisted: boolean;
+
+  @Column('text', { nullable: true })
+  blacklistReason?: string;
 
   @Column('timestamp', { nullable: true })
-  lastContact?: Date;
+  lastContactDate?: Date;
 
   @Column('timestamp', { nullable: true })
   lastOrderDate?: Date;
@@ -189,268 +199,196 @@ export class Supplier {
   inventoryItems: InventoryItem[];
 
   // Virtual Properties
+  get overallScore(): number {
+    const scores = [
+      this.rating * 20, // Convert 5-star to 100-point scale
+      this.onTimeDeliveryRate,
+      this.qualityScore,
+      this.communicationScore,
+      this.shippingScore,
+    ].filter(score => score > 0);
+
+    return scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+  }
+
+  get reliabilityLevel(): 'low' | 'medium' | 'high' {
+    const score = this.overallScore;
+    if (score >= 80) return 'high';
+    if (score >= 60) return 'medium';
+    return 'low';
+  }
+
   get averageOrderValue(): number {
     return this.totalOrders > 0 ? this.totalOrderValue / this.totalOrders : 0;
   }
 
-  get reliabilityScore(): number {
-    let score = 0;
-    let factors = 0;
-
-    if (this.rating > 0) {
-      score += this.rating * 20; // 0-5 rating -> 0-100
-      factors++;
-    }
-
-    if (this.onTimeDeliveryRate > 0) {
-      score += this.onTimeDeliveryRate;
-      factors++;
-    }
-
-    if (this.qualityScore > 0) {
-      score += this.qualityScore;
-      factors++;
-    }
-
-    if (this.responseTimeHours > 0) {
-      const responseScore = Math.max(0, 100 - this.responseTimeHours);
-      score += responseScore;
-      factors++;
-    }
-
-    return factors > 0 ? score / factors : 0;
-  }
-
-  get averageShippingTime(): number {
-    return this.shippingTimeMin > 0 && this.shippingTimeMax > 0
-      ? (this.shippingTimeMin + this.shippingTimeMax) / 2
-      : 0;
-  }
-
   get isRecommended(): boolean {
-    return this.reliabilityScore >= 80 && this.rating >= 4.0 && this.isVerified;
+    return (
+      this.overallScore >= 70 &&
+      this.onTimeDeliveryRate >= 85 &&
+      this.qualityScore >= 75 &&
+      this.totalOrders >= 5 &&
+      this.isActive &&
+      !this.isBlacklisted
+    );
   }
 
-  get communicationScore(): number {
-    let score = 50; // Base score
+  get riskLevel(): 'low' | 'medium' | 'high' {
+    let riskScore = 0;
 
-    if (this.responseTimeHours <= 2) score += 25;
-    else if (this.responseTimeHours <= 8) score += 15;
-    else if (this.responseTimeHours <= 24) score += 5;
+    // Verification level risk
+    if (this.verificationLevel === 'unverified') riskScore += 30;
+    else if (this.verificationLevel === 'standard') riskScore += 15;
 
-    if (this.email && this.phone) score += 15;
-    else if (this.email || this.phone) score += 10;
+    // Order history risk
+    if (this.totalOrders < 5) riskScore += 25;
+    else if (this.totalOrders < 20) riskScore += 10;
 
-    if (this.lastContact) {
-      const daysSinceContact = Math.floor(
-        (Date.now() - new Date(this.lastContact).getTime()) / (1000 * 60 * 60 * 24)
-      );
-      
-      if (daysSinceContact <= 7) score += 10;
-      else if (daysSinceContact <= 30) score += 5;
-    }
+    // Performance risk
+    if (this.onTimeDeliveryRate < 70) riskScore += 20;
+    else if (this.onTimeDeliveryRate < 85) riskScore += 10;
 
-    return Math.min(score, 100);
-  }
+    if (this.qualityScore < 60) riskScore += 15;
 
-  get businessScore(): number {
-    let score = 0;
+    // Communication risk
+    if (this.responseTimeHours > 48) riskScore += 10;
 
-    // Order volume
-    if (this.totalOrders > 100) score += 20;
-    else if (this.totalOrders > 50) score += 15;
-    else if (this.totalOrders > 10) score += 10;
-
-    // Order value
-    if (this.averageOrderValue > 1000) score += 15;
-    else if (this.averageOrderValue > 500) score += 10;
-    else if (this.averageOrderValue > 100) score += 5;
-
-    // Verification and certifications
-    if (this.isVerified) score += 15;
-    if (this.certifications.length > 0) score += 10;
-    if (this.hasContract) score += 10;
-
-    // Recent activity
-    if (this.lastOrderDate) {
-      const daysSinceOrder = Math.floor(
-        (Date.now() - new Date(this.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24)
-      );
-      
-      if (daysSinceOrder <= 30) score += 15;
-      else if (daysSinceOrder <= 90) score += 10;
-      else if (daysSinceOrder <= 180) score += 5;
-    }
-
-    // Platform preference
-    if (['alibaba', 'manufacturer'].includes(this.platform)) score += 10;
-    else if (['wholesale', 'aliexpress'].includes(this.platform)) score += 5;
-
-    return Math.min(score, 100);
+    if (riskScore >= 50) return 'high';
+    if (riskScore >= 25) return 'medium';
+    return 'low';
   }
 
   // Methods
-  updateRating(newRating: number, orderId?: string): void {
-    if (newRating < 0 || newRating > 5) {
-      throw new Error('Rating 0-5 arasında olmalıdır');
-    }
-
-    // Ağırlıklı ortalama hesaplama
-    const totalWeight = this.totalOrders;
-    const newWeight = 1;
-    
-    this.rating = totalWeight > 0 
-      ? ((this.rating * totalWeight) + (newRating * newWeight)) / (totalWeight + newWeight)
-      : newRating;
-    
-    this.rating = Math.round(this.rating * 100) / 100; // 2 decimal places
+  updateRating(newRating: number): void {
+    this.rating = Math.max(0, Math.min(5, newRating));
   }
 
-  updateDeliveryPerformance(deliveredOnTime: boolean): void {
-    const totalDeliveries = this.totalOrders;
-    const currentSuccessfulDeliveries = (this.onTimeDeliveryRate / 100) * totalDeliveries;
-    
-    const newSuccessfulDeliveries = deliveredOnTime 
-      ? currentSuccessfulDeliveries + 1 
-      : currentSuccessfulDeliveries;
-    
-    this.onTimeDeliveryRate = totalDeliveries > 0 
-      ? (newSuccessfulDeliveries / totalDeliveries) * 100 
-      : deliveredOnTime ? 100 : 0;
-  }
-
-  addOrder(orderValue: number, deliveredOnTime: boolean = true): void {
+  addOrder(orderValue: number, isOnTime: boolean, qualityRating: number): void {
     this.totalOrders += 1;
     this.totalOrderValue += orderValue;
+    
+    // Update on-time delivery rate
+    const currentTotal = this.onTimeDeliveryRate * (this.totalOrders - 1);
+    this.onTimeDeliveryRate = (currentTotal + (isOnTime ? 100 : 0)) / this.totalOrders;
+    
+    // Update quality score
+    const currentQualityTotal = this.qualityScore * (this.totalOrders - 1);
+    this.qualityScore = (currentQualityTotal + qualityRating) / this.totalOrders;
+    
     this.lastOrderDate = new Date();
-    
-    this.updateDeliveryPerformance(deliveredOnTime);
   }
 
-  calculateShippingCost(weight: number, method: string = 'standard'): number {
-    if (!this.shippingCosts || !this.shippingCosts[method]) {
+  updateCommunicationScore(responseTime: number, quality: number): void {
+    this.responseTimeHours = responseTime;
+    this.communicationScore = quality;
+    this.lastContactDate = new Date();
+  }
+
+  blacklist(reason: string): void {
+    this.isBlacklisted = true;
+    this.isActive = false;
+    this.blacklistReason = reason;
+  }
+
+  whitelist(): void {
+    this.isBlacklisted = false;
+    this.blacklistReason = null;
+    this.isActive = true;
+  }
+
+  calculateShippingCost(weight: number, destination: string): number {
+    // Basit shipping cost hesaplama
+    if (!this.shippingMethods || this.shippingMethods.length === 0) {
+      return weight * 2; // Default rate
+    }
+
+    const cheapestMethod = this.shippingMethods.reduce((min, method) => 
+      method.cost < min.cost ? method : min
+    );
+
+    return cheapestMethod.cost * Math.ceil(weight / 1000); // Per kg
+  }
+
+  getBulkDiscount(quantity: number): number {
+    if (!this.bulkDiscountAvailable || !this.bulkDiscountTiers) {
       return 0;
     }
 
-    const shipping = this.shippingCosts[method];
-    const totalCost = shipping.baseCost + (weight * shipping.perKgCost);
+    const applicableTier = this.bulkDiscountTiers
+      .filter(tier => quantity >= tier.minQuantity)
+      .sort((a, b) => b.minQuantity - a.minQuantity)[0];
 
-    // Free shipping threshold kontrolü
-    if (shipping.freeShippingThreshold && this.averageOrderValue >= shipping.freeShippingThreshold) {
-      return 0;
-    }
-
-    return totalCost;
+    return applicableTier ? applicableTier.discountPercent : 0;
   }
 
-  canFulfillOrder(requiredQuantity: number, productId: string): boolean {
-    // Bu method supplier products ile implement edilecek
-    return true; // Placeholder
-  }
-
-  getPerformanceReport(): {
-    overall: number;
-    reliability: number;
-    communication: number;
-    business: number;
-    recommendations: string[];
-  } {
-    const reliability = this.reliabilityScore;
-    const communication = this.communicationScore;
-    const business = this.businessScore;
-    const overall = (reliability + communication + business) / 3;
-
-    const recommendations: string[] = [];
-
-    if (reliability < 70) {
-      recommendations.push('Teslimat performansını iyileştirin');
+  getEstimatedDeliveryDays(shippingMethod?: string): number {
+    if (shippingMethod && this.shippingMethods) {
+      const method = this.shippingMethods.find(m => m.method === shippingMethod);
+      if (method) {
+        // Parse delivery time string (e.g., "7-15 days")
+        const match = method.deliveryTime.match(/(\d+)-?(\d+)?/);
+        if (match) {
+          const min = parseInt(match[1]);
+          const max = match[2] ? parseInt(match[2]) : min;
+          return (min + max) / 2;
+        }
+      }
     }
 
-    if (communication < 70) {
-      recommendations.push('İletişim hızını artırın');
-    }
-
-    if (business < 70) {
-      recommendations.push('İş hacmini ve doğrulamayı tamamlayın');
-    }
-
-    if (this.rating < 4.0) {
-      recommendations.push('Müşteri memnuniyetini artırın');
-    }
-
-    if (!this.isVerified) {
-      recommendations.push('Hesap doğrulamasını tamamlayın');
-    }
-
-    return {
-      overall,
-      reliability,
-      communication,
-      business,
-      recommendations,
-    };
-  }
-
-  static createFromPlatformData(
-    userId: string,
-    platform: string,
-    platformData: any
-  ): Supplier {
-    const supplier = new Supplier();
-    supplier.userId = userId;
-    supplier.platform = platform as any;
-    
-    // Platform spesifik mapping
-    switch (platform) {
-      case 'aliexpress':
-        supplier.name = platformData.sellerName || platformData.storeName;
-        supplier.rating = platformData.rating || 0;
-        supplier.profileUrl = platformData.storeUrl;
-        supplier.country = platformData.location || 'China';
-        break;
-        
-      case 'alibaba':
-        supplier.name = platformData.companyName || platformData.supplierName;
-        supplier.companyName = platformData.companyName;
-        supplier.rating = platformData.rating || 0;
-        supplier.isVerified = platformData.goldSupplier || false;
-        supplier.country = platformData.country || 'China';
-        break;
-        
-      default:
-        supplier.name = platformData.name || 'Unknown Supplier';
-    }
-
-    return supplier;
+    return this.leadTimeDays;
   }
 
   validate(): string[] {
     const errors: string[] = [];
 
     if (!this.name || this.name.trim().length === 0) {
-      errors.push('Tedarikçi adı gereklidir');
+      errors.push('Tedarikçi adı gerekli');
+    }
+
+    if (this.email && !this.email.includes('@')) {
+      errors.push('Geçerli bir email adresi gerekli');
     }
 
     if (this.rating < 0 || this.rating > 5) {
-      errors.push('Rating 0-5 arasında olmalıdır');
+      errors.push('Rating 0-5 arasında olmalı');
     }
 
-    if (this.onTimeDeliveryRate < 0 || this.onTimeDeliveryRate > 100) {
-      errors.push('Teslimat oranı 0-100 arasında olmalıdır');
+    if (this.minimumOrderQuantity < 0) {
+      errors.push('Minimum sipariş miktarı negatif olamaz');
     }
 
-    if (this.qualityScore < 0 || this.qualityScore > 100) {
-      errors.push('Kalite skoru 0-100 arasında olmalıdır');
+    if (this.minimumOrderValue && this.minimumOrderValue < 0) {
+      errors.push('Minimum sipariş tutarı negatif olamaz');
     }
 
-    if (this.shippingTimeMin > this.shippingTimeMax) {
-      errors.push('Minimum teslimat süresi maksimumdan küçük olmalı');
+    if (this.leadTimeDays < 0) {
+      errors.push('Teslimat süresi negatif olamaz');
     }
 
-    if (this.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
-      errors.push('Geçerli bir e-posta adresi giriniz');
+    if (this.sampleCost < 0) {
+      errors.push('Numune ücreti negatif olamaz');
     }
 
     return errors;
+  }
+
+  static createFromPlatformData(platformData: {
+    platform: string;
+    storeId: string;
+    name: string;
+    url: string;
+    rating?: number;
+    country?: string;
+  }): Partial<Supplier> {
+    return {
+      name: platformData.name,
+      platform: platformData.platform as any,
+      platformUrl: platformData.url,
+      platformStoreId: platformData.storeId,
+      rating: platformData.rating || 0,
+      country: platformData.country,
+      verificationLevel: 'standard',
+      isActive: true,
+    };
   }
 }
