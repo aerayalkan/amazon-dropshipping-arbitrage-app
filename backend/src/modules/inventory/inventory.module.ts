@@ -5,8 +5,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 // Controllers
 import { InventoryController } from './inventory.controller';
-import { SuppliersController } from './suppliers.controller';
-import { InventoryRulesController } from './inventory-rules.controller';
 
 // Services
 import { InventoryService } from './inventory.service';
@@ -27,7 +25,6 @@ import { PriceUpdateLog } from './entities/price-update-log.entity';
 
 // External Modules
 import { ProductsModule } from '../products/products.module';
-import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -46,12 +43,9 @@ import { NotificationModule } from '../notification/notification.module';
     }),
     ScheduleModule.forRoot(),
     ProductsModule,
-    NotificationModule,
   ],
   controllers: [
     InventoryController,
-    SuppliersController,
-    InventoryRulesController,
   ],
   providers: [
     InventoryService,
