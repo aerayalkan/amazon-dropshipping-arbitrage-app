@@ -1,0 +1,78 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: [backend, frontend, ai-service]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js (for backend/frontend)
+        if: matrix.service != 'ai-service'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup Python (for ai-service)
+        if: matrix.service == 'ai-service'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Update Node.js dependencies
+        if: matrix.service != 'ai-service'
+        working-directory: ./${{ matrix.service }}
+        run: |
+          npm update
+          npm audit fix --force || true
+
+      - name: Update Python dependencies
+        if: matrix.service == 'ai-service'
+        working-directory: ./${{ matrix.service }}
+        run: |
+          pip install --upgrade pip
+          pip-compile --upgrade requirements.in
+          pip-compile --upgrade requirements-dev.in
+
+      - name: Run tests
+        if: matrix.service != 'ai-service'
+        working-directory: ./${{ matrix.service }}
+        run: npm test
+
+      - name: Run Python tests
+        if: matrix.service == 'ai-service'
+        working-directory: ./${{ matrix.service }}
+        run: |
+          pip install -r requirements-dev.txt
+          pytest
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: update ${{ matrix.service }} dependencies'
+          title: 'chore: update ${{ matrix.service }} dependencies'
+          body: |
+            Automated dependency update for ${{ matrix.service }}
+            
+            This PR updates all dependencies to their latest compatible versions.
+            
+            - [ ] Dependencies updated
+            - [ ] Tests passing
+            - [ ] No breaking changes detected
+          branch: dependency-update-${{ matrix.service }}
+          delete-branch: true

@@ -4,123 +4,225 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
+    container_name: amazon-arbitrage-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: amazon_dropshipping
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: ${DATABASE_NAME:-amazon_arbitrage}
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres123}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
-      - "5432:5432"
+      - "${DATABASE_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - amazon-arbitrage-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_NAME:-amazon_arbitrage}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis Cache
   redis:
     image: redis:7-alpine
+    container_name: amazon-arbitrage-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
     ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - amazon-arbitrage-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   # Backend API
   backend:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    ports:
-      - "3001:3001"
+      target: ${NODE_ENV:-development}
+    container_name: amazon-arbitrage-backend
+    restart: unless-stopped
     environment:
-      NODE_ENV: development
-      PORT: 3001
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${BACKEND_PORT:-3001}
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: password123
-      DATABASE_NAME: amazon_dropshipping
+      DATABASE_NAME: ${DATABASE_NAME:-amazon_arbitrage}
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-postgres123}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: supersecretkey123
-      FRONTEND_URL: http://localhost:3000
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-your-refresh-token-secret}
+      REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN:-7d}
+      AMAZON_ACCESS_KEY: ${AMAZON_ACCESS_KEY}
+      AMAZON_SECRET_KEY: ${AMAZON_SECRET_KEY}
+      AMAZON_ASSOCIATE_TAG: ${AMAZON_ASSOCIATE_TAG}
+      AMAZON_MARKETPLACE: ${AMAZON_MARKETPLACE:-webservices.amazon.com}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      SENTRY_DSN: ${SENTRY_DSN}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      RATE_LIMIT_TTL: ${RATE_LIMIT_TTL:-60000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
     volumes:
       - ../backend:/app
       - /app/node_modules
-    command: npm run start:dev
-
-  # AI Service
-  ai-service:
-    build:
-      context: ../ai-service
-      dockerfile: Dockerfile
-    ports:
-      - "8001:8001"
-    environment:
-      DATABASE_URL: postgresql://postgres:password123@postgres:5432/amazon_dropshipping
-      REDIS_URL: redis://redis:6379
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY}
+      - backend_uploads:/app/uploads
+    networks:
+      - amazon-arbitrage-network
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ../ai-service:/app
-      - ai_models:/app/models
-    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Frontend
+  # Frontend Dashboard
   frontend:
     build:
       context: ../frontend
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
+      target: ${NODE_ENV:-development}
+    container_name: amazon-arbitrage-frontend
+    restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001
-      NEXT_PUBLIC_AI_SERVICE_URL: http://localhost:8001
-    depends_on:
-      - backend
+      NODE_ENV: ${NODE_ENV:-development}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Amazon Dropshipping Dashboard}
+      NEXT_PUBLIC_APP_VERSION: ${NEXT_PUBLIC_APP_VERSION:-1.0.0}
+      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN}
+      NEXT_PUBLIC_GOOGLE_ANALYTICS_ID: ${NEXT_PUBLIC_GOOGLE_ANALYTICS_ID}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
     volumes:
       - ../frontend:/app
       - /app/node_modules
       - /app/.next
-    command: npm run dev
-
-  # pgAdmin (Database Management)
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
+    networks:
+      - amazon-arbitrage-network
     depends_on:
-      - postgres
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # AI Service (Python)
+  ai-service:
+    build:
+      context: ../ai-service
+      dockerfile: Dockerfile
+    container_name: amazon-arbitrage-ai
+    restart: unless-stopped
+    environment:
+      PYTHONPATH: /app
+      FLASK_ENV: ${NODE_ENV:-development}
+      REDIS_URL: redis://redis:6379/1
+      DATABASE_URL: postgresql://${DATABASE_USER:-postgres}:${DATABASE_PASSWORD:-postgres123}@postgres:5432/${DATABASE_NAME:-amazon_arbitrage}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      HUGGINGFACE_TOKEN: ${HUGGINGFACE_TOKEN}
+      MODEL_CACHE_DIR: /app/models
+    ports:
+      - "${AI_SERVICE_PORT:-5000}:5000"
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - ../ai-service:/app
+      - ai_models:/app/models
+      - ai_data:/app/data
+    networks:
+      - amazon-arbitrage-network
+    depends_on:
+      - redis
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: amazon-arbitrage-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    networks:
+      - amazon-arbitrage-network
+    depends_on:
+      - frontend
+      - backend
+
+  # Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus
+    container_name: amazon-arbitrage-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - amazon-arbitrage-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+
+  # Grafana for Dashboards
+  grafana:
+    image: grafana/grafana
+    container_name: amazon-arbitrage-grafana
+    restart: unless-stopped
+    ports:
+      - "3030:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - amazon-arbitrage-network
+    depends_on:
+      - prometheus
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
-  pgadmin_data:
+    driver: local
+  backend_uploads:
+    driver: local
   ai_models:
+    driver: local
+  ai_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
 
 networks:
-  default:
-    name: amazon_dropshipping_network
+  amazon-arbitrage-network:
+    driver: bridge
