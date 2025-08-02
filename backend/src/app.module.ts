@@ -17,8 +17,11 @@ import { PricingModule } from './modules/pricing/pricing.module';
 import { RepricingModule } from './modules/repricing/repricing.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AIModule } from './modules/ai/ai.module';
+import { HealthModule } from './health/health.module';
 import { AmazonApiModule } from './modules/amazon-api/amazon-api.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -50,10 +53,13 @@ import { NotificationModule } from './modules/notification/notification.module';
     RepricingModule,
     DashboardModule,
     AIModule,
+    HealthModule,
     AmazonApiModule,
     NotificationModule,
   ],
+  controllers: [AppController],
   providers: [
+    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
