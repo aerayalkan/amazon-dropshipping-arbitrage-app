@@ -1,0 +1,26 @@
+# TruffleHog ignore file
+# Ignore example/template files
+env.example
+.env.example
+*.example
+*template*
+*sample*
+
+# Ignore test files
+*test*
+*spec*
+*mock*
+
+# Ignore documentation
+README*
+*.md
+docs/
+
+# Ignore specific patterns that are not secrets
+changeme
+your-*
+placeholder
+example
+test-secret
+dummy
+sample

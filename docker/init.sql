@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_user') THEN
-        CREATE ROLE app_user WITH LOGIN PASSWORD 'secure_app_password_2024';
+        CREATE ROLE app_user WITH LOGIN PASSWORD '${APP_USER_PASSWORD:-changeme}';
     END IF;
 END
 $$;
@@ -22,7 +22,7 @@ GRANT CREATE ON SCHEMA public TO app_user;
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'metrics_user') THEN
-        CREATE ROLE metrics_user WITH LOGIN PASSWORD 'metrics_password_2024';
+        CREATE ROLE metrics_user WITH LOGIN PASSWORD '${METRICS_USER_PASSWORD:-changeme}';
     END IF;
 END
 $$;
